@@ -1,0 +1,38 @@
+-- Applied as migration 'avatar_outfits_lockin_social'.
+-- Full DDL lives in the Supabase dashboard (Database → Migrations); summary:
+--
+-- profiles      + coins int, avatar jsonb, compete_opt_out bool
+--               (avatar/compete_opt_out granted for user update;
+--                handle_new_user trigger now also copies 'avatar' metadata)
+--
+-- outfits             catalogue: 4 free + 5 XP-priced (300..1500 XP)
+-- outfit_purchases    ownership; buy_outfit(p_outfit_id) deducts XP + relevels
+--
+-- focus_sessions      lock-in history; complete_focus_session(focus, break)
+--                     awards coins = focus_minutes / 5 (50 min -> 10 coins)
+--
+-- study_items         shop catalogue (15 items, per-item colour arrays + colour fee)
+-- study_setup         owned items + chosen colour
+--                     buy_study_item(item, colour) / recolor_study_item(item, colour)
+--
+-- friendships         requester/addressee/status; send_friend_request(email),
+--                     respond_friend_request(id, accept), remove_friend(id),
+--                     get_friends() -> friend rows incl. avatar + pending direction
+--
+-- duo_quests          shared quest between two friends; create_duo_quest(friend)
+--                     picks a random template + fills variables server-side;
+--                     complete_duo_quest(id): first finisher gets xp_base + xp_bonus,
+--                     second gets xp_base
+--
+-- leagues             name + 6-char join code; league_members
+--                     create_league(name), join_league(code), leave_league(id)
+-- league_standings(league)  current ISO-week focus minutes, ranked,
+--                     excluding profiles with compete_opt_out
+-- league_rewards      idempotent weekly payout log
+-- award_weekly_coins()  top-5 of previous week per league get 50/40/30/20/10 coins
+--                     scheduled via pg_cron: '5 0 * * 1' (Mondays 00:05 UTC),
+--                     job name 'apex-weekly-league-rewards'
+--
+-- All tables have RLS (select scoped to owner/participant/member);
+-- all writes go through the security-definer RPCs above, which are
+-- revoked from anon/public.

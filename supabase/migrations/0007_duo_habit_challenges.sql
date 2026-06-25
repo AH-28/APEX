@@ -1,0 +1,44 @@
+-- Applied as migrations 'duo_habit_challenges' + 'user_today_safe_tz'.
+-- Reworks friend "duo quests" into 5-day shared HABIT challenges, and adds
+-- the journal dashboard aggregate. Full DDL is in the Supabase dashboard
+-- (Database → Migrations); summary below.
+--
+-- REMOVED: duo_quests table + create_duo_quest/complete_duo_quest
+--          (the old "first finisher gets bonus XP" race).
+--
+-- habit_templates       recurring daily habits (make bed, brush teeth, read…),
+--                       readable by authenticated.
+--
+-- duo_challenges        requester/addressee, habit, status
+--                       (pending → active → completed | declined),
+--                       start_date (set on accept), days=5, settled_at,
+--                       requester_reward/addressee_reward. RLS: participants only.
+-- duo_checkins          (challenge_id, user_id, day) one row per completed day.
+--
+-- Flow / RPCs (security definer; execute revoked from anon/public, kept for authenticated):
+--   create_duo_challenge(friend)      friends-only; one open challenge per pair;
+--                                     picks a random habit; status='pending'.
+--   respond_duo_challenge(id, accept) addressee accepts → active, window starts
+--                                     today (their tz); decline → 'declined'.
+--   checkin_duo_challenge(id)         participant marks today done (once/day,
+--                                     only within the 5-day window).
+--   get_duo_challenges()             rich read for the UI: my/friend day counts,
+--                                     check-in date arrays, today flag, day-in-window,
+--                                     window_ended, my_reward, incoming flag.
+--   settle_my_duo_challenges()        client calls on Friends load; settles any of
+--                                     my finished challenges.
+--
+-- Rewards (duo_reward): by each user's OWN completed-day count, steeper drop per
+--   miss → [0,10,40,90,160,250] for 0..5 days. Both consistent all 5 → 250 each.
+--   settle_one_duo(id) is idempotent (settled_at guard + FOR UPDATE lock) and
+--   awards both sides + relevels. settle_all_due_duo() runs nightly via pg_cron
+--   ('apex-settle-duo', '30 0 * * *') as a backstop.
+--
+-- user_today(user)      local date from the profile timezone, falling back to UTC
+--                       on invalid/non-IANA zone strings (e.g. "British Summer Time").
+--
+-- journal_stats()       json: solo_completed, this_week, active_days (distinct
+--                       completion dates), duo_completed, by_category{cat:count}.
+--                       Used by the journal dashboard. (Recent-quest list is a
+--                       plain filtered select on quests; duo challenges live in
+--                       their own table so they're naturally excluded there.)

@@ -1,0 +1,13 @@
+-- Applied as migration 'per_user_theme'.
+-- The colour theme is now stored per-account (not per-device): the login/
+-- signup screens always show the fixed default (Nebula / dark), and each
+-- user's chosen theme loads when they sign in and persists across devices.
+--
+-- profiles + theme_preset text not null default 'Nebula'
+--          + theme_mode   text not null default 'dark'
+--          (both granted for user UPDATE; written via api.saveTheme()).
+--
+-- Client: main.dart applies the theme from the profile on signedIn /
+-- initialSession and calls resetThemeToDefault() on signedOut; the profile
+-- Appearance picker applies instantly + persists via saveTheme. The old
+-- SharedPreferences (per-device) theme storage was removed.

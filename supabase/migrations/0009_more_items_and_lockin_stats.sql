@@ -1,0 +1,12 @@
+-- Applied as migration 'more_study_items_and_lockin_stats'.
+--
+-- study_items: added desk, shelf, poster-art, poster-band, clock, curtains,
+-- coffee, soda, water (wall décor, a recolourable desk, and drinks). The
+-- 'desk' item recolours the room's painted desk rather than appearing as a
+-- separate sprite.
+--
+-- journal_stats(): added lock-in aggregates
+--   lockin_minutes       — total focus minutes (all time)
+--   lockin_sessions      — number of completed pomodoro sessions
+--   lockin_minutes_week  — focus minutes since the start of this week
+-- surfaced in the journal dashboard's new "Lock-in" card.
