@@ -4,8 +4,7 @@ Every day you get 5–8 small, personalised real-world quests: explore, photogra
 create, connect. Complete them, earn XP, level up, and build a journal of memories.
 
 - **App**: Flutter — iOS, Android, macOS, Windows, Linux, and Web from one codebase ([app/](app))
-- **Backend**: **Supabase** (project `apex`, ID `tugxgfpdcpsfzfckoqtc`) — Postgres + Auth +
-  Storage + an Edge Function for quest generation. Nothing to run locally.
+- **Backend**: **Supabase** — Postgres + Auth + Storage + an Edge Function for quest generation. Nothing to run locally.
 - **Quest generation**: hybrid — a curated template catalogue + Claude filling the
   variables with structured output, with a deterministic fallback. Full design in
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
