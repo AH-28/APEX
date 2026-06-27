@@ -1,8 +1,13 @@
 import 'dart:typed_data';
 
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models.dart';
+
+/// SharedPreferences key marking that a freshly created account still needs to
+/// see the welcome tour. Keyed per user id so it only targets that account.
+String onboardingPendingKey(String userId) => 'onboarding_pending_$userId';
 
 typedef TodayQuests = ({List<Quest> quests, int rerollsLeft});
 
@@ -46,6 +51,13 @@ class ApiClient {
         'avatar': ?avatar,
       },
     );
+    // A session here means the account is active immediately (no email
+    // confirmation) — flag it so the home screen runs the welcome tour once.
+    final user = res.user;
+    if (res.session != null && user != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(onboardingPendingKey(user.id), true);
+    }
     return res.session != null;
   }
 
@@ -375,6 +387,27 @@ class ApiClient {
 
   Future<void> setCompeteOptOut(bool optOut) async {
     await _sb.from('profiles').update({'compete_opt_out': optOut}).eq('id', myId);
+  }
+
+  /// Sends a contact-us message to the APEX inbox via the `contact` Edge
+  /// Function (subject "APEX Query"; the user's email becomes the reply-to).
+  Future<void> contactUs(String email, String message) async {
+    try {
+      final res = await _sb.functions.invoke('contact', body: {
+        'email': email,
+        'message': message,
+      });
+      final data = res.data;
+      if (data is Map && data['error'] != null) {
+        throw ApiException(data['error'].toString());
+      }
+    } on FunctionException catch (e) {
+      final details = e.details;
+      if (details is Map && details['error'] != null) {
+        throw ApiException(details['error'].toString());
+      }
+      throw ApiException('Could not send your message. Please try again.');
+    }
   }
 
   /// Persists the user's chosen theme to their account.

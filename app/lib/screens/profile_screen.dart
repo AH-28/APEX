@@ -22,12 +22,16 @@ class ProfileScreen extends StatefulWidget {
     required this.profile,
     required this.onChanged,
     required this.onLogout,
+    this.onReplayTour,
   });
 
   final ApiClient api;
   final UserProfile profile;
   final Future<void> Function() onChanged;
   final Future<void> Function() onLogout;
+
+  /// Re-runs the welcome tour. Provided by the home screen, which owns it.
+  final VoidCallback? onReplayTour;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -179,6 +183,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       _snack(e.toString());
     }
+  }
+
+  Future<void> _contactUs() async {
+    final email = TextEditingController(text: widget.profile.email);
+    final message = TextEditingController();
+    bool sending = false;
+    String? error;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setLocal) {
+          Future<void> send() async {
+            final mail = email.text.trim();
+            final msg = message.text.trim();
+            if (!mail.contains('@') || !mail.contains('.')) {
+              setLocal(() => error = 'Please enter a valid email address.');
+              return;
+            }
+            if (msg.isEmpty) {
+              setLocal(() => error = 'Please type a message.');
+              return;
+            }
+            setLocal(() {
+              sending = true;
+              error = null;
+            });
+            try {
+              await widget.api.contactUs(mail, msg);
+              if (context.mounted) Navigator.pop(context);
+              _snack('Message sent — thanks for reaching out!');
+            } catch (e) {
+              setLocal(() {
+                sending = false;
+                error = e.toString();
+              });
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('Contact us'),
+            content: SizedBox(
+              width: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Questions, ideas or a bug to report? Send us a message and "
+                    "we'll get back to you.",
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    autocorrect: false,
+                    enabled: !sending,
+                    decoration: const InputDecoration(
+                      labelText: 'Your email',
+                      hintText: 'you@example.com',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: message,
+                    minLines: 5,
+                    maxLines: 8,
+                    maxLength: 5000,
+                    enabled: !sending,
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.newline,
+                    decoration: const InputDecoration(
+                      labelText: 'Your message',
+                      hintText: 'How can we help?',
+                      alignLabelWithHint: true,
+                    ),
+                  ),
+                  if (error != null)
+                    Text(
+                      error!,
+                      style:
+                          TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: sending ? null : () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: sending ? null : send,
+                child: sending
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Send'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void _snack(String message) {
@@ -397,6 +509,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.password,
                     label: 'Change password',
                     onTap: _changePassword,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _Section(
+              icon: Icons.help_outline,
+              title: 'Help',
+              subtitle: 'Take the tour again, or get in touch.',
+              child: Column(
+                children: [
+                  if (widget.onReplayTour != null) ...[
+                    _AccountAction(
+                      icon: Icons.map_outlined,
+                      label: 'Replay the welcome tour',
+                      onTap: widget.onReplayTour!,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  _AccountAction(
+                    icon: Icons.mail_outline,
+                    label: 'Contact us',
+                    onTap: _contactUs,
                   ),
                 ],
               ),

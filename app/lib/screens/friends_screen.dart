@@ -12,10 +12,18 @@ import 'home_screen.dart' show categoryColors, categoryIcons;
 /// for 5 days — staying consistent earns more XP (250 for all 5, less for
 /// each missed day, nothing if you miss them all).
 class FriendsScreen extends StatefulWidget {
-  const FriendsScreen({super.key, required this.api, required this.onXpChanged});
+  const FriendsScreen({
+    super.key,
+    required this.api,
+    required this.onXpChanged,
+    this.addFriendKey,
+  });
 
   final ApiClient api;
   final Future<void> Function() onXpChanged;
+
+  /// Tour spotlight target for the "add a friend" button.
+  final Key? addFriendKey;
 
   @override
   State<FriendsScreen> createState() => _FriendsScreenState();
@@ -143,6 +151,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
           GradientButton(
+            key: widget.addFriendKey,
             expand: true,
             onPressed: _addFriend,
             icon: Icons.person_add,

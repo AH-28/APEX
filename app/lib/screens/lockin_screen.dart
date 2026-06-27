@@ -16,11 +16,15 @@ class LockInScreen extends StatefulWidget {
     required this.api,
     required this.coins,
     required this.onCoinsChanged,
+    this.statsKey,
   });
 
   final ApiClient api;
   final int coins;
   final Future<void> Function() onCoinsChanged;
+
+  /// Tour spotlight target for the coins / weekly-minutes row.
+  final Key? statsKey;
 
   @override
   State<LockInScreen> createState() => _LockInScreenState();
@@ -129,6 +133,7 @@ class _LockInScreenState extends State<LockInScreen> {
       children: [
         // Coin balance + weekly stat row.
         Row(
+          key: widget.statsKey,
           children: [
             _statChip(Icons.toll, '${widget.coins} coins', const Color(0xFFFACC15)),
             const SizedBox(width: 8),
